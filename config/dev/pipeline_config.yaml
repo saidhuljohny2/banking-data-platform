@@ -1,0 +1,4 @@
+project_id: dev-gcp-100
+bronze_dataset: banking_bronze
+silver_dataset: banking_silver
+gold_dataset: banking_gold

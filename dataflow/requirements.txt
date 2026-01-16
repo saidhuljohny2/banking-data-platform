@@ -1,0 +1,5 @@
+apache-beam[gcp]
+cloud-sql-python-connector
+sqlalchemy
+pymysql
+pyarrow
