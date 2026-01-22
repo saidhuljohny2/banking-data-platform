@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS `dev-gcp-100.banking_bronze.bronze_customers` (
+CREATE OR REPLACE TABLE `banking_bronze.bronze_customers` (
   customer_id      INT64,
   first_name       STRING,
   last_name        STRING,

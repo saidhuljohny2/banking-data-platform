@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS `dev-gcp-100.banking_bronze.bronze_accounts` (
+CREATE OR REPLACE TABLE `banking_bronze.bronze_accounts` (
   account_id       INT64,
   customer_id      INT64,
   account_type     STRING,
