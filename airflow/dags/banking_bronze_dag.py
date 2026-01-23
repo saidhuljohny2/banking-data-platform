@@ -1,6 +1,5 @@
 import os
 from airflow import DAG
-from airflow.dags.banking_ingestion_dag import GCS_PYTHON_SCRIPT
 from airflow.utils.dates import days_ago
 from datetime import timedelta
 import logging
@@ -15,14 +14,14 @@ from airflow.providers.google.cloud.operators.dataproc import (
 # CONFIG
 # =====================================================
 PROJECT_ID = "dev-gcp-100"
-REGION = "us-central1"
+REGION = "us-east1"
 
 # Unique cluster name (prevents collision)
 CLUSTER_NAME = "dev-dataproc-{{ ds_nodash }}"
 
 # Composer bucket
 composer_bucket = os.environ["GCS_BUCKET"]
-PYSPARK_MAIN = f"gs://{composer_bucket}/data/dataproc/bronze_cloudsql_to_bq.py"
+PYSPARK_MAIN = f"gs://{composer_bucket}/data/dataproc/bronze_gcs_to_bq.py"
 logging.info("GCS_PYTHON_SCRIPT = %s", PYSPARK_MAIN)
 
 # =====================================================
@@ -70,7 +69,7 @@ CLUSTER_CONFIG = {
 with DAG(
     dag_id="dataproc_bronze_ingestion_dag",
     description="Ephemeral Dataproc cluster for PySpark ingestion",
-    schedule_interval="30 5 * * *",
+    schedule_interval=None,     # Manual / CI-CD trigger
     catchup=False,
     default_args=DEFAULT_ARGS,
     tags=["dataproc", "pyspark", "gcs", "bigquery"],
