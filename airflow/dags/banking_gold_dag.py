@@ -41,7 +41,6 @@ with DAG(
     catchup=False,
     max_active_runs=1,
     default_args=DEFAULT_ARGS,
-    sla=timedelta(hours=1),
     tags=["banking", "gold", "bigquery", "analytics"],
 ) as dag:
 
