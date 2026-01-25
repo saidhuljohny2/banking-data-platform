@@ -67,7 +67,7 @@ CLUSTER_CONFIG = {
 # DAG
 # =====================================================
 with DAG(
-    dag_id="dataproc_bronze_ingestion_dag",
+    dag_id="banking_bronze_dag",
     description="Ephemeral Dataproc cluster for PySpark ingestion",
     schedule_interval=None,     # Manual / CI-CD trigger
     catchup=False,
