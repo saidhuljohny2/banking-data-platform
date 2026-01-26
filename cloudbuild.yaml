@@ -1,8 +1,7 @@
 substitutions:
   _ENV_NAME: banking-composer-dev
   _REGION: us-central1
-  _PYTHON_VERSION: "3"
-  _IMAGE_VERSION: "composer-2.6.5-airflow-2.6.3"
+  _IMAGE_VERSION: "composer-3-airflow-2.10.5-build.24"
 
 steps:
 
@@ -23,35 +22,33 @@ steps:
         echo "Creating Composer environment..."
         gcloud composer environments create ${_ENV_NAME} \
           --location ${_REGION} \
-          --image-version ${_IMAGE_VERSION}
+          --image-version ${_IMAGE_VERSION} \
+          --environment-size small 
       fi
 
 # =====================================================
-# 2️⃣ FETCH DAG PREFIX (COMPOSER 2 STYLE)
+# 2️⃣ FETCH DAG PREFIX (RETURNS .../dags)
 # =====================================================
 - name: gcr.io/cloud-builders/gcloud
-  id: fetch-composer-paths
+  id: fetch-composer-dag-prefix
   entrypoint: bash
   args:
     - -c
     - |
       set -e
-
       DAG_PREFIX=$(gcloud composer environments describe ${_ENV_NAME} \
         --location ${_REGION} \
         --format="value(config.dagGcsPrefix)")
-
       echo "DAG_PREFIX=${DAG_PREFIX}" >> /workspace/composer.env
+      echo "DAG_PREFIX=${DAG_PREFIX}"
 
-      # Extract bucket root (remove /dags)
-      BUCKET_ROOT=$(echo ${DAG_PREFIX} | sed 's#/dags$##')
-
+      # Derive bucket root by removing /dags
+      BUCKET_ROOT=${DAG_PREFIX%/dags}
       echo "BUCKET_ROOT=${BUCKET_ROOT}" >> /workspace/composer.env
-
-      cat /workspace/composer.env
+      echo "BUCKET_ROOT=${BUCKET_ROOT}"
 
 # =====================================================
-# 3️⃣ DEPLOY DAG FILES (NO EXTRA /dags)
+# 3️⃣ DEPLOY DAG FILES (USE DAG PREFIX DIRECTLY)
 # =====================================================
 - name: gcr.io/cloud-builders/gsutil
   id: deploy-dags
@@ -60,10 +57,10 @@ steps:
     - -c
     - |
       source /workspace/composer.env
-      gsutil -m rsync -r -d airflow/dags/ ${DAG_PREFIX}
+      gsutil -m rsync -r -d airflow/dags/ ${DAG_PREFIX}/
 
 # =====================================================
-# 4️⃣ DEPLOY DATA FILES (SQL / SPARK / CONFIG)
+# 4️⃣ DEPLOY DATA FILES (USE BUCKET ROOT)
 # =====================================================
 - name: gcr.io/cloud-builders/gsutil
   id: deploy-data
