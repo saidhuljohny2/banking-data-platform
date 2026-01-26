@@ -1,27 +1,75 @@
-steps:
-  # --------------------------------------------------
-  # 1. DEPLOY DAG FILES
-  # --------------------------------------------------
-  - name: gcr.io/cloud-builders/gsutil
-    args:
-      - -m
-      - rsync
-      - -r
-      - -d
-      - airflow/dags/
-      - gs://${_COMPOSER_BUCKET}/dags/
+substitutions:
+  _ENV_NAME: demo-composer
+  _REGION: us-central1
+  _PYTHON_VERSION: "3"
+  _AIRFLOW_VERSION: "2.10.5"
+  _IMAGE_VERSION: "composer-3-airflow-2.10.5-build.24"
 
-  # --------------------------------------------------
-  # 2. DEPLOY DATA FILES (SQL, SPARK, CONFIG)
-  # --------------------------------------------------
-  - name: gcr.io/cloud-builders/gsutil
-    args:
-      - -m
-      - rsync
-      - -r
-      - -d
-      - airflow/data/
-      - gs://${_COMPOSER_BUCKET}/data/
+steps:
+
+# =====================================================
+# 1️⃣ CREATE COMPOSER ENV (IDEMPOTENT)
+# =====================================================
+- name: gcr.io/cloud-builders/gcloud
+  id: create-composer-env
+  entrypoint: bash
+  args:
+    - -c
+    - |
+      set -e
+      if gcloud composer environments describe ${_ENV_NAME} \
+        --location ${_REGION} >/dev/null 2>&1; then
+        echo "Composer environment already exists"
+      else
+        echo "Creating Composer environment..."
+        gcloud composer environments create ${_ENV_NAME} \
+          --location ${_REGION} \
+          --image-version ${_IMAGE_VERSION} \
+          --environment-size small \
+          --python-version ${_PYTHON_VERSION}
+      fi
+
+# =====================================================
+# 2️⃣ FETCH COMPOSER DAG BUCKET (AUTO)
+# =====================================================
+- name: gcr.io/cloud-builders/gcloud
+  id: fetch-composer-bucket
+  entrypoint: bash
+  args:
+    - -c
+    - |
+      set -e
+      BUCKET=$(gcloud composer environments describe ${_ENV_NAME} \
+        --location ${_REGION} \
+        --format="value(config.dagGcsPrefix)")
+      echo "COMPOSER_BUCKET=${BUCKET#gs://}" >> /workspace/composer.env
+      cat /workspace/composer.env
+
+# =====================================================
+# 3️⃣ DEPLOY DAG FILES
+# =====================================================
+- name: gcr.io/cloud-builders/gsutil
+  id: deploy-dags
+  args:
+    - -m
+    - rsync
+    - -r
+    - -d
+    - airflow/dags/
+    - gs://$(cat /workspace/composer.env | cut -d= -f2)/dags/
+
+# =====================================================
+# 4️⃣ DEPLOY DATA FILES (SQL, SPARK, CONFIG)
+# =====================================================
+- name: gcr.io/cloud-builders/gsutil
+  id: deploy-data
+  args:
+    - -m
+    - rsync
+    - -r
+    - -d
+    - airflow/data/
+    - gs://$(cat /workspace/composer.env | cut -d= -f2)/data/
 
 options:
   logging: CLOUD_LOGGING_ONLY
