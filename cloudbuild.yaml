@@ -1,9 +1,8 @@
 substitutions:
-  _ENV_NAME: demo-composer
+  _ENV_NAME: banking-composer-dev
   _REGION: us-central1
   _PYTHON_VERSION: "3"
-  _AIRFLOW_VERSION: "2.10.5"
-  _IMAGE_VERSION: "composer-3-airflow-2.10.5-build.24"
+  _IMAGE_VERSION: "composer-2.6.5-airflow-2.6.3"
 
 steps:
 
@@ -24,52 +23,56 @@ steps:
         echo "Creating Composer environment..."
         gcloud composer environments create ${_ENV_NAME} \
           --location ${_REGION} \
-          --image-version ${_IMAGE_VERSION} \
-          --environment-size small \
-          --python-version ${_PYTHON_VERSION}
+          --image-version ${_IMAGE_VERSION}
       fi
 
 # =====================================================
-# 2️⃣ FETCH COMPOSER DAG BUCKET (AUTO)
+# 2️⃣ FETCH DAG PREFIX (COMPOSER 2 STYLE)
 # =====================================================
 - name: gcr.io/cloud-builders/gcloud
-  id: fetch-composer-bucket
+  id: fetch-composer-paths
   entrypoint: bash
   args:
     - -c
     - |
       set -e
-      BUCKET=$(gcloud composer environments describe ${_ENV_NAME} \
+
+      DAG_PREFIX=$(gcloud composer environments describe ${_ENV_NAME} \
         --location ${_REGION} \
         --format="value(config.dagGcsPrefix)")
-      echo "COMPOSER_BUCKET=${BUCKET#gs://}" >> /workspace/composer.env
+
+      echo "DAG_PREFIX=${DAG_PREFIX}" >> /workspace/composer.env
+
+      # Extract bucket root (remove /dags)
+      BUCKET_ROOT=$(echo ${DAG_PREFIX} | sed 's#/dags$##')
+
+      echo "BUCKET_ROOT=${BUCKET_ROOT}" >> /workspace/composer.env
+
       cat /workspace/composer.env
 
 # =====================================================
-# 3️⃣ DEPLOY DAG FILES
+# 3️⃣ DEPLOY DAG FILES (NO EXTRA /dags)
 # =====================================================
 - name: gcr.io/cloud-builders/gsutil
   id: deploy-dags
+  entrypoint: bash
   args:
-    - -m
-    - rsync
-    - -r
-    - -d
-    - airflow/dags/
-    - gs://$(cat /workspace/composer.env | cut -d= -f2)/dags/
+    - -c
+    - |
+      source /workspace/composer.env
+      gsutil -m rsync -r -d airflow/dags/ ${DAG_PREFIX}
 
 # =====================================================
-# 4️⃣ DEPLOY DATA FILES (SQL, SPARK, CONFIG)
+# 4️⃣ DEPLOY DATA FILES (SQL / SPARK / CONFIG)
 # =====================================================
 - name: gcr.io/cloud-builders/gsutil
   id: deploy-data
+  entrypoint: bash
   args:
-    - -m
-    - rsync
-    - -r
-    - -d
-    - airflow/data/
-    - gs://$(cat /workspace/composer.env | cut -d= -f2)/data/
+    - -c
+    - |
+      source /workspace/composer.env
+      gsutil -m rsync -r -d airflow/data/ ${BUCKET_ROOT}/data/
 
 options:
   logging: CLOUD_LOGGING_ONLY
