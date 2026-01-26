@@ -9,7 +9,7 @@ steps:
       - -r
       - -d
       - airflow/dags/
-      - gs://$COMPOSER_BUCKET/dags/
+      - gs://${_COMPOSER_BUCKET}/dags/
 
   # --------------------------------------------------
   # 2. DEPLOY DATA FILES (SQL, SPARK, CONFIG)
@@ -21,7 +21,7 @@ steps:
       - -r
       - -d
       - airflow/data/
-      - gs://$COMPOSER_BUCKET/data/
+      - gs://${_COMPOSER_BUCKET}/data/
 
 options:
   logging: CLOUD_LOGGING_ONLY
