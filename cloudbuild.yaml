@@ -1,77 +1,68 @@
-substitutions:
-  _ENV_NAME: banking-composer-dev
-  _REGION: us-central1
-  _IMAGE_VERSION: "composer-3-airflow-2.10.5-build.24"
-
 steps:
+  - name: gcr.io/cloud-builders/gcloud
+    args:
+      - '-c'
+      - |
+        set -e
+        if gcloud composer environments describe ${_ENV_NAME} \
+          --location ${_REGION} >/dev/null 2>&1; then
+          echo "Composer environment already exists"
+        else
+          echo "Creating Composer environment..."
+          gcloud composer environments create ${_ENV_NAME} \
+            --location ${_REGION} \
+            --image-version ${_IMAGE_VERSION} \
+            --service-account ${_SERVICE_ACCOUNT} \
+            --environment-size small
+        fi
+    id: create-composer-env
+    entrypoint: bash
+  - name: gcr.io/cloud-builders/gcloud
+    args:
+      - '-c'
+      - >
+        set -e
 
-# =====================================================
-# 1️⃣ CREATE COMPOSER ENV (IDEMPOTENT)
-# =====================================================
-- name: gcr.io/cloud-builders/gcloud
-  id: create-composer-env
-  entrypoint: bash
-  args:
-    - -c
-    - |
-      set -e
-      if gcloud composer environments describe ${_ENV_NAME} \
-        --location ${_REGION} >/dev/null 2>&1; then
-        echo "Composer environment already exists"
-      else
-        echo "Creating Composer environment..."
-        gcloud composer environments create ${_ENV_NAME} \
+        # Note: We use $$ for bash variables to avoid Cloud Build substitution
+        errors
+
+        FULL_PATH=$(gcloud composer environments describe ${_ENV_NAME} \
           --location ${_REGION} \
-          --image-version ${_IMAGE_VERSION} \
-          --environment-size small
-      fi
+          --format="value(config.dagGcsPrefix)")
 
-# =====================================================
-# 2️⃣ FETCH DAG PREFIX (RETURNS .../dags)
-# =====================================================
-- name: gcr.io/cloud-builders/gcloud
-  id: fetch-composer-dag-prefix
-  entrypoint: bash
-  args:
-    - -c
-    - |
-      set -e
-      DAG_PREFIX=$(gcloud composer environments describe ${_ENV_NAME} \
-        --location ${_REGION} \
-        --format="value(config.dagGcsPrefix)")
-      echo "DAG_PREFIX=${DAG_PREFIX}" >> /workspace/composer.env
+        # Strip 'gs://' from start and '/dags' from end
 
-      BUCKET_ROOT=${DAG_PREFIX%/dags}
-      echo "BUCKET_ROOT=${BUCKET_ROOT}" >> /workspace/composer.env
+        TEMP_BUCKET=$${FULL_PATH#gs://}
 
-      echo "Resolved DAG_PREFIX=${DAG_PREFIX}"
-      echo "Resolved BUCKET_ROOT=${BUCKET_ROOT}"
+        CLEAN_BUCKET=$${TEMP_BUCKET%/dags}
 
-# =====================================================
-# 3️⃣ DEPLOY DAG FILES (ESCAPE VARIABLES!)
-# =====================================================
-- name: gcr.io/cloud-builders/gsutil
-  id: deploy-dags
-  entrypoint: bash
-  args:
-    - -c
-    - |
-      set -e
-      source /workspace/composer.env
-      gsutil -m rsync -r -d airflow/dags/ $$DAG_PREFIX/
 
-# =====================================================
-# 4️⃣ DEPLOY DATA FILES (ESCAPE VARIABLES!)
-# =====================================================
-- name: gcr.io/cloud-builders/gsutil
-  id: deploy-data
-  entrypoint: bash
-  args:
-    - -c
-    - |
-      set -e
-      source /workspace/composer.env
-      gsutil -m rsync -r -d airflow/data/ $$BUCKET_ROOT/data/
+        echo "$$CLEAN_BUCKET" > /workspace/bucket_name.txt
 
+        echo "Identified Bucket: $$CLEAN_BUCKET"
+    id: fetch-composer-bucket
+    entrypoint: bash
+  - name: gcr.io/cloud-builders/gsutil
+    args:
+      - '-c'
+      - |
+        TARGET_BUCKET=$(cat /workspace/bucket_name.txt)
+        gsutil -m rsync -r -d airflow/dags/ gs://$$TARGET_BUCKET/dags/
+    id: deploy-dags
+    entrypoint: bash
+  - name: gcr.io/cloud-builders/gsutil
+    args:
+      - '-c'
+      - |
+        TARGET_BUCKET=$(cat /workspace/bucket_name.txt)
+        gsutil -m rsync -r -d airflow/data/ gs://$$TARGET_BUCKET/data/
+    id: deploy-data
+    entrypoint: bash
 options:
   logging: CLOUD_LOGGING_ONLY
+substitutions:
+  _ENV_NAME: demo-composer-dev
+  _REGION: us-central1
+  _AIRFLOW_VERSION: 2.10.5
+  _IMAGE_VERSION: composer-3-airflow-2.10.5-build.24
+  _SERVICE_ACCOUNT: 1031875039844-compute@developer.gserviceaccount.com
