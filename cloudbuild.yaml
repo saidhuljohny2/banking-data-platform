@@ -23,7 +23,7 @@ steps:
         gcloud composer environments create ${_ENV_NAME} \
           --location ${_REGION} \
           --image-version ${_IMAGE_VERSION} \
-          --environment-size small 
+          --environment-size small
       fi
 
 # =====================================================
@@ -40,15 +40,15 @@ steps:
         --location ${_REGION} \
         --format="value(config.dagGcsPrefix)")
       echo "DAG_PREFIX=${DAG_PREFIX}" >> /workspace/composer.env
-      echo "DAG_PREFIX=${DAG_PREFIX}"
 
-      # Derive bucket root by removing /dags
       BUCKET_ROOT=${DAG_PREFIX%/dags}
       echo "BUCKET_ROOT=${BUCKET_ROOT}" >> /workspace/composer.env
-      echo "BUCKET_ROOT=${BUCKET_ROOT}"
+
+      echo "Resolved DAG_PREFIX=${DAG_PREFIX}"
+      echo "Resolved BUCKET_ROOT=${BUCKET_ROOT}"
 
 # =====================================================
-# 3️⃣ DEPLOY DAG FILES (USE DAG PREFIX DIRECTLY)
+# 3️⃣ DEPLOY DAG FILES (ESCAPE VARIABLES!)
 # =====================================================
 - name: gcr.io/cloud-builders/gsutil
   id: deploy-dags
@@ -56,11 +56,12 @@ steps:
   args:
     - -c
     - |
+      set -e
       source /workspace/composer.env
-      gsutil -m rsync -r -d airflow/dags/ ${DAG_PREFIX}/
+      gsutil -m rsync -r -d airflow/dags/ $$DAG_PREFIX/
 
 # =====================================================
-# 4️⃣ DEPLOY DATA FILES (USE BUCKET ROOT)
+# 4️⃣ DEPLOY DATA FILES (ESCAPE VARIABLES!)
 # =====================================================
 - name: gcr.io/cloud-builders/gsutil
   id: deploy-data
@@ -68,8 +69,9 @@ steps:
   args:
     - -c
     - |
+      set -e
       source /workspace/composer.env
-      gsutil -m rsync -r -d airflow/data/ ${BUCKET_ROOT}/data/
+      gsutil -m rsync -r -d airflow/data/ $$BUCKET_ROOT/data/
 
 options:
   logging: CLOUD_LOGGING_ONLY
