@@ -15,7 +15,7 @@ LEFT JOIN `banking_silver.dim_account` a
 LEFT JOIN `banking_bronze.bronze_accounts` b
   ON a.account_id = b.account_id
 LEFT JOIN `banking_silver.fact_transactions` t
-  ON c.customer_sk = t.customer_sk
+  ON c.customer_id = t.customer_id
 WHERE c.is_current = TRUE
 GROUP BY
   c.customer_sk,
