@@ -26,6 +26,10 @@ logging.info("GCS_PYTHON_SCRIPT = %s", GCS_PYTHON_SCRIPT)
 TEMP_LOCATION = "gs://banking-temp-dev/temp/"
 STAGING_LOCATION = "gs://banking-temp-dev/staging/"
 
+DEFAULT_ARGS = {
+    "owner": "data-engineering"
+}
+
 # =====================================================
 # DAG
 # =====================================================
@@ -36,12 +40,7 @@ with DAG(
     schedule_interval="0 10 * * *",
     catchup=False,
     max_active_runs=1,
-    default_args={
-        "owner": "data-engineering",
-        "retries": 2,
-        "retry_delay": timedelta(minutes=5),
-        "email_on_failure": True,
-    },
+    default_args=DEFAULT_ARGS,
     tags=["banking", "cdc", "dataflow"],
 ) as dag:
 

@@ -22,9 +22,7 @@ COMPOSER_BUCKET = os.environ["GCS_BUCKET"]
 DDL_BASE_PATH = "data/bigquery/table_ddl"
 
 default_args = {
-    "owner": "data-platform",
-    "depends_on_past": False,
-    "retries": 1
+    "owner": "data-platform"
 }
 
 # =========================================================

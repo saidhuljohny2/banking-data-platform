@@ -16,10 +16,7 @@ COMPOSER_BUCKET = os.environ["GCS_BUCKET"]
 silver_SQL_PATH = f"gs://{COMPOSER_BUCKET}/data/bigquery/silver"
 
 DEFAULT_ARGS = {
-    "owner": "data-engineering",
-    "retries": 1,
-    "retry_delay": timedelta(minutes=5),
-    "email_on_failure": True,
+    "owner": "data-engineering"
 }
 
 # =====================================================

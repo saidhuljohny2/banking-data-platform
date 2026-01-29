@@ -28,11 +28,7 @@ logging.info("GCS_PYTHON_SCRIPT = %s", PYSPARK_MAIN)
 # DEFAULT ARGS
 # =====================================================
 DEFAULT_ARGS = {
-    "owner": "data-engineering",
-    "start_date": days_ago(1),
-    "retries": 1,
-    "retry_delay": timedelta(minutes=5),
-    "email_on_failure": False,
+    "owner": "data-engineering"
 }
 
 # =====================================================

@@ -8,7 +8,8 @@ from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 # =====================================================
 DEFAULT_ARGS = {
     "owner": "data-engineering",
-    "retries": 0,  # fail fast
+    "retries": 0,  # fail fast,
+    "email_on_failure": True
 }
 
 # =====================================================
