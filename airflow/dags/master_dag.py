@@ -19,7 +19,7 @@ with DAG(
     dag_id="banking_master_dag",
     description="Master DAG orchestrating Banking Data Platform",
     start_date=days_ago(1),
-    schedule_interval="0 9 * * *",
+    schedule_interval="@once",
     catchup=False,
     max_active_runs=1,
     default_args=DEFAULT_ARGS,

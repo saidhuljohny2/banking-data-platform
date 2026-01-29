@@ -31,7 +31,7 @@ STAGING_LOCATION = "gs://banking-temp-dev/staging/"
 with DAG(
     dag_id="banking_streaming_ingestion_dag",
     description="Start Dataflow streaming pipeline for banking transactions",
-    start_date=days_ago(1),
+    schedule_interval="@once",
     schedule_interval=None,      # streaming ≠ scheduled
     catchup=False,
     max_active_runs=1,
