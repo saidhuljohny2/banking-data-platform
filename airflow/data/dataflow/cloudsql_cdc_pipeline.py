@@ -48,7 +48,7 @@ LOGGER = logging.getLogger("cloudsql-cdc")
 # CONFIG
 # =====================================================
 PROJECT_ID = "dev-gcp-100"
-REGION = "us-central1"
+REGION = "us-east1"
 
 BQ_DATASET = "banking_metadata"
 BQ_TABLE = "cdc_config"

@@ -12,7 +12,7 @@ from apache_beam.io.gcp.bigquery import WriteToBigQuery
 # CONFIGURATION
 # =====================================================
 PROJECT_ID = "dev-gcp-100"
-REGION = "us-central1"
+REGION = "us-east1"
 
 # Pub/Sub subscription for streaming transactions
 INPUT_SUBSCRIPTION = (

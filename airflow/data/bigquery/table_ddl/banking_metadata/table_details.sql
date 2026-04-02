@@ -4,7 +4,6 @@ CREATE TABLE IF NOT EXISTS `banking_metadata.table_details` (
     create_table BOOL NOT NULL,
     create_timestamp TIMESTAMP
 )
-PARTITION BY DATE(create_timestamp)
 OPTIONS (
     description = "Metadata table to control BigQuery table creation using DDL from GCS"
 );
@@ -44,6 +43,6 @@ VALUES
 ('banking_metadata', 'table_ingestion_config', TRUE, NULL);
 
 -- Reset create_table flags to FALSE after initial setup
-UPDATE `dev-gcp-100.banking_metadata.table_details`
+UPDATE `banking_metadata.table_details`
 SET create_table = FALSE
 where create_table = True;
