@@ -11,13 +11,13 @@ from apache_beam.io.gcp.bigquery import WriteToBigQuery
 # =====================================================
 # CONFIGURATION
 # =====================================================
-PROJECT_ID = "dev-gcp-100"
+PROJECT_ID = "dev-banking-2026"
 REGION = "us-east1"
 
 # Pub/Sub subscription for streaming transactions
 INPUT_SUBSCRIPTION = (
-    "projects/dev-gcp-100/subscriptions/"
-    "banking-transactions-stream-sub"
+    "projects/dev-banking-2026/subscriptions/"
+    "banking-transactions-sub"
 )
 
 # BigQuery Bronze table (append-only)
@@ -25,7 +25,7 @@ BQ_TABLE = "banking_bronze.bronze_streaming_transactions"
 
 # Dead-letter topic for invalid / corrupt messages
 DEADLETTER_TOPIC = (
-    "projects/dev-gcp-100/topics/"
+    "projects/dev-banking-2026/topics/"
     "banking-transactions-deadletter"
 )
 
@@ -51,7 +51,8 @@ class ParseAndValidateEvent(beam.DoFn):
     def process(self, message):
         try:
             # Decode Pub/Sub message (bytes → dict)
-            event = json.loads(message.decode("utf-8"))
+            event = message.decode("utf-8")
+            event = json.loads(event)
 
             # Mandatory banking transaction fields
             required_fields = [
@@ -83,7 +84,7 @@ class ParseAndValidateEvent(beam.DoFn):
 
         except Exception as e:
             # Log error and send raw message to dead-letter stream
-            logging.error(f"Invalid message: {e}")
+            logging.error(f"Invalid message: {e}- {message}")
             yield beam.pvalue.TaggedOutput("deadletter",message.decode("utf-8"))
 
 # =====================================================
@@ -136,7 +137,7 @@ def run():
         # DEAD-LETTER HANDLING
         # -------------------------------------------------
         # Invalid messages are published for replay/debugging
-        deadletter_events | "WriteDeadLetter" >> beam.io.WriteToPubSub(DEADLETTER_TOPIC)
+        # deadletter_events | "WriteDeadLetter" >> beam.io.WriteToPubSub(DEADLETTER_TOPIC)
 
         # -------------------------------------------------
         # EVENT TIME ASSIGNMENT & WINDOWING
@@ -166,7 +167,7 @@ def run():
                 table=BQ_TABLE,
                 write_disposition=beam.io.BigQueryDisposition.WRITE_APPEND,
                 create_disposition=beam.io.BigQueryDisposition.CREATE_NEVER,
-                custom_gcs_temp_location="gs://banking-temp-dev/temp/"
+                custom_gcs_temp_location="gs://gcs-temp-bkt-154546/temp/"
             )
         )
 

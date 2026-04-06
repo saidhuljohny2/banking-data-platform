@@ -8,7 +8,7 @@ from google.cloud import pubsub_v1
 # =====================================================
 # CONFIG
 # =====================================================
-PROJECT_ID = "dev-gcp-100" # replace with your GCP project ID
+PROJECT_ID = "dev-banking-2026" # replace with your GCP project ID
 TOPIC_ID = "banking-transactions-topic"
 
 EVENTS_PER_SECOND = 2   # control load (TPS)
@@ -33,6 +33,7 @@ CURRENCY = "INR"
 # =====================================================
 def generate_transaction_event():
     event = {
+        "event_id": f"evt_{uuid.uuid4().hex[:8]}",
         "transaction_id": f"txn_{uuid.uuid4().hex[:10]}",
         "account_id": random.randint(10001, 11000),
         "customer_id": random.randint(1, 500),
@@ -41,7 +42,7 @@ def generate_transaction_event():
         "amount": round(random.uniform(10, 50000), 2),
         "currency": CURRENCY,
         "merchant": random.choice(MERCHANTS),
-        "transaction_ts": datetime.now(timezone.utc).isoformat(),
+        "event_ts": datetime.now(timezone.utc).isoformat(),
         "status": random.choices(
             STATUSES,
             weights=[90, 10]  # realistic failure rate
